@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+"""
+CodeAlpha_Network_Sniffer
+Domain: Cybersecurity Task 1
+Description: A professional Python network traffic sniffer utilizing Scapy.
+"""
+
+import sys
+from scapy.all import sniff, IP, TCP, UDP, ICMP
+
+def packet_callback(packet):
+    # Check if the packet contains an IP (Network) Layer
+    if packet.haslayer(IP):
+        ip_layer = packet[IP]
+        source_ip = ip_layer.src
+        destination_ip = ip_layer.dst
+        protocol_num = ip_layer.proto
+        
+        # Determine Transport Layer Protocol
+        protocol_name = "UNKNOWN"
+        payload_details = ""
+        
+        if packet.haslayer(TCP):
+            protocol_name = "TCP"
+            tcp_layer = packet[TCP]
+            payload_details = f"Src Port: {tcp_layer.sport} -> Dst Port: {tcp_layer.dport}"
+        elif packet.haslayer(UDP):
+            protocol_name = "UDP"
+            udp_layer = packet[UDP]
+            payload_details = f"Src Port: {udp_layer.sport} -> Dst Port: {udp_layer.dport}"
+        elif packet.haslayer(ICMP):
+            protocol_name = "ICMP"
+            icmp_layer = packet[ICMP]
+            payload_details = f"Type: {icmp_layer.type} | Code: {icmp_layer.code}"
+
+        # Print structured human-readable packet summaries
+        print("-" * 80)
+        print(f"[+] New Packet Intercepted | Protocol: {protocol_name}")
+        print(f"    Route: {source_ip} ----> {destination_ip}")
+        if payload_details:
+            print(f"    Layer Info: {payload_details}")
+            
+        # Extract and display raw Application Layer payload data if present
+        if packet.haslayer('Raw'):
+            raw_payload = packet['Raw'].load
+            # Clean up binary/non-printable characters for clean presentation
+            readable_payload = raw_payload.decode('utf-8', errors='ignore').strip()
+            if readable_payload:
+                print(f"    Payload Snippet: {readable_payload[:100]}")
+
+def main():
+    print("=" * 80)
+    print(" CODEALPHA CYBERSECURITY DEPLOYMENT: INITIALIZING BASIC NETWORK SNIFFER ")
+    print("=" * 80)
+    print("[*] Listening for network traffic... Press Ctrl+C to terminate application.")
+    
+    try:
+        # Sniff indefinitely, executing the callback for every captured IP packet
+        sniff(filter="ip", prn=packet_callback, store=False)
+    except PermissionError:
+        print("\n[!] Execution Error: Administrative/Root privileges are required to capture raw network packets.")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print("\n[-] Monitoring session closed gracefully by user interface.")
+        print("=" * 80)
+        sys.exit(0)
+
+if __name__ == "__main__":
+    main()
